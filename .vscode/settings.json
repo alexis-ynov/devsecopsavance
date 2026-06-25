@@ -1,0 +1,7 @@
+{
+  "editor.tabSize": 2,
+  "files.insertFinalNewline": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}"
+  }
+}
