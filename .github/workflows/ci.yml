@@ -11,8 +11,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          echo "::group::Installation des modules Node.js"
+          npm ci
+          echo "::endgroup::"
 
       - name: Run tests
         run: npm test
+
+      - name: Publish JUnit Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: '**/junit.xml'
+
+      - name: Verify Environment and Secrets
+        env:
+          MY_ENV: ${{ vars.APP_ENVIRONMENT }}
+          MY_SECRET: ${{ secrets.AWS_SECRET_KEY }}
+        run: |
+          echo "Environment: $MY_ENV"
+          echo "Secret Key: $MY_SECRET"
