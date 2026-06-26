@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "corporate-api-token"
+description = "Detects corporate API tokens starting with mycorp_ prefix"
+regex = '(?i)mycorp_[a-z0-9]{23,24}'
+keywords = [
+    "mycorp_"
+]

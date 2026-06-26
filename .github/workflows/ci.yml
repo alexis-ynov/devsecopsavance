@@ -75,7 +75,53 @@ jobs:
     environment: production
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SOPS and Age
+        run: |
+          # Download and install SOPS
+          curl -LO https://github.com/getsops/sops/releases/download/v3.13.1/sops-v3.13.1.linux.amd64
+          sudo mv sops-v3.13.1.linux.amd64 /usr/local/bin/sops
+          sudo chmod +x /usr/local/bin/sops
+
+          # Install Age
+          sudo apt-get update && sudo apt-get install -y age
+
+      - name: Decrypt and Export Secrets
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: |
+          echo "$SOPS_AGE_KEY" > key.txt
+          export SOPS_AGE_KEY_FILE=key.txt
+          sops -d --output-type json secrets-prod.yaml > secrets.json
+          rm key.txt
+          node -e '
+            const fs = require("fs");
+            const data = JSON.parse(fs.readFileSync("secrets.json", "utf8"));
+            for (const [key, val] of Object.entries(data)) {
+              if (key !== "sops") {
+                console.log(`::add-mask::${val}`);
+                fs.appendFileSync(process.env.GITHUB_ENV, `${key}=${val}\n`);
+              }
+            }
+          '
+          rm secrets.json
+
+      - name: Verify App Starts with Decrypted Secrets
+        run: |
+          node -e '
+            require("./src/app.js");
+            console.log("Application started successfully!");
+          '
+
       - name: Deploy Simulation
         run: |
           echo "Deploying to production..."
           echo "Target sub environment: ${{ github.event.inputs.target_sub_env || 'production' }}"
+          if [ -n "$SIMULATED_AWS_KEY" ] && [ -n "$INTERNAL_TOKEN" ]; then
+            echo "Successfully loaded secrets in environment!"
+          else
+            echo "Failed to load secrets!"
+            exit 1
+          fi
