@@ -78,7 +78,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Install dependencies
-              run: npm ci
+        run: npm ci
       - name: Install SOPS and Age
         run: |
           # Download and install SOPS
